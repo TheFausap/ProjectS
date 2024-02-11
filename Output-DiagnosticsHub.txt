@@ -1,0 +1,25 @@
+﻿Profiling of 'ProjectS' started.
+ProjectS has exited.
+Profiling of 'ProjectS' stopped.
+Symbols loaded for projects.exe from \\?\C:\Users\fausap\AppData\Local\Temp\30acb990-5a0d-44f3-96da-3b55e005aa71.PackageExtraction\TempSymCache\ProjectS.pdb\FAF418F59D5045BBB4141E8E57E1D3261\ProjectS.pdb
+Profiling of 'ProjectS' started.
+ProjectS has exited.
+Profiling of 'ProjectS' stopped.
+Symbols loaded for projects.exe from \\?\C:\Users\fausap\AppData\Local\Temp\17e7f378-bc8b-473d-862a-ad23eb36187c.PackageExtraction\TempSymCache\ProjectS.pdb\FAF418F59D5045BBB4141E8E57E1D3262\ProjectS.pdb
+Profiling of 'ProjectS' started.
+ProjectS has exited.
+Profiling of 'ProjectS' stopped.
+Symbols loaded for projects.exe from \\?\C:\Users\fausap\AppData\Local\Temp\f25b14b3-4808-46a1-be89-9f503cf269f4.PackageExtraction\TempSymCache\ProjectS.pdb\FAF418F59D5045BBB4141E8E57E1D3263\ProjectS.pdb
+Profiling of 'ProjectS.exe' started.
+ProjectS.exe has exited.
+Profiling of 'ProjectS.exe' stopped.
+Symbols loaded for projects.exe from \\?\C:\Users\fausap\AppData\Local\Temp\a885813e-626f-45bb-9551-d13e9ff04350.PackageExtraction\TempSymCache\ProjectS.pdb\FAF418F59D5045BBB4141E8E57E1D3263\ProjectS.pdb
+Profiling of 'ProjectS.exe' started.
+ProjectS.exe has exited.
+Profiling of 'ProjectS.exe' stopped.
+Symbols loaded for projects.exe from \\?\C:\Users\fausap\AppData\Local\Temp\bb43104b-bfd1-457c-a9ce-ae2b7895ea36.PackageExtraction\TempSymCache\ProjectS.pdb\FAF418F59D5045BBB4141E8E57E1D3263\ProjectS.pdb
+Symbols failed to load for ntdll.dll. Failed to find symbol file ntdll.pdb
+Skipping reanalysis after failing to find symbols for any selected modules.
+Symbols loaded for ntdll.dll from \\?\C:\Users\fausap\AppData\Local\Temp\SymbolCache\ntdll.pdb\58a282c24aee7e03a8cf8cb0a782ce0c1\stripped\ntdll.pdb
+Skipping reanalysis after failing to find symbols for any selected modules.
+Symbols loaded for ucrtbase.dll from \\?\C:\Users\fausap\AppData\Local\Temp\SymbolCache\ucrtbase.pdb\a18b58f2e2dd692a4591dd05331782ba1\stripped\ucrtbase.pdb
