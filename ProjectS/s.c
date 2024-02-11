@@ -593,52 +593,67 @@ add:		ln = slen(bf);
 				ln++;
 				mvn(bf3, bf2, ln);  /* move one more if less                 */
 			}
-			/* first round */
+			/* first digit */
 			zero(bf);
-			while (cmp(bf, bf3) <= 0)
+			do
 			{
 				d_c2++;
 				strcpy(bf, _add(bf, mem[wka+2]));
+			} while (cmp(bf, bf3) <= 0);
+			if (cmp(bf, bf3) > 0)
+			{
+				d_c2--;
+				strcpy(bf, _sub(bf, mem[wka + 2]));
 			}
-			if (d_c2 > 1) d_c2--;
 			d_c1 += (ln-1);
 			mem[wka][d_c1] = d_c2 + '0';
-			
 			d_c1++;
-			strcpy(bf3, _sub(bf, bf3));
+			strcpy(bf3, _sub(bf3, bf));
 			for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
 			bf3[SIZE - 2] = mem[wka + 1][d_c1];
-			
+			/* intermediate digits */
 			while(d_c1<SIZE-2)
 			{
 				zero(bf);
 				d_c2 = 0;
-				while (cmp(bf, bf3) < 0)
+				do
 				{
-					strcpy(bf, _add(bf, mem[wka+2]));
 					d_c2++;
-				}
+					strcpy(bf, _add(bf, mem[wka+2]));
+				} while (cmp(bf, bf3) <= 0);
 				if (d_c2 > 10) d_c2 %= 10;
-				else if (d_c2 > 1) d_c2--;
+				if (cmp(bf, bf3) > 0)
+				{
+					d_c2--;
+					strcpy(bf, _sub(bf, mem[wka + 2]));
+				}
 				mem[wka][d_c1] = d_c2 + '0';
 				d_c1++;
-				strcpy(bf3, _sub(bf, bf3));
+				strcpy(bf3, _sub(bf3, bf));
 				for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
 				bf3[SIZE - 2] = mem[wka + 1][d_c1];
 			}
-			/* last digit */
-			d_c2 = 0;
-			zero(bf);
-			while (cmp(bf, bf3) < 0)
+			/* last digit ? */
+			if(d_c1<99)
 			{
-				strcpy(bf, _add(bf, mem[wka+2]));
-				d_c2++;
-			}
-			mem[wka][d_c1] = d_c2 + '0';
-			strcpy(bf3, _sub(bf3, bf));
-			if(bf3[0]=='9')
-			{
-				strcpy(bf3, _add(bf3, bf));
+				d_c2 = 0;
+				zero(bf);
+				do
+				{
+					d_c2++;
+					strcpy(bf, _add(bf, mem[wka + 2]));
+				} while (cmp(bf, bf3) < 0);
+				if (cmp(bf, bf3) > 0)
+				{
+					d_c2--;
+					strcpy(bf, _sub(bf, mem[wka + 2]));
+				}
+				mem[wka][d_c1] = d_c2 + '0';
+				strcpy(bf3, _sub(bf3, bf));
+				if (bf3[0] == '9')
+				{
+					strcpy(bf3, _add(bf3, bf));
+				}
 			}
 			push(mem[wka]);
 			push(bf3);
