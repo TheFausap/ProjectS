@@ -13,8 +13,10 @@ typedef char C;
 
 #define SIZE	100
 #define SSIZE	1024
-#define MSIZE	1024
+#define MSIZE	2048
 #define WKSIZE  (2*SIZE)
+#define FPSTART	900
+#define FPSIZE	100
 
 #define ER(m,v)	{fprintf(stderr,"%%ALLOC-FAILURE-%s-%02XH",m,v);exit(v);}
 

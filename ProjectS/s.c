@@ -296,6 +296,7 @@ I main(I n, C** a)
 	C* bf3;
 	I ln = 0, ln2 = 0, df = 0, dff = 0;
 	I wka = 0, bfs = 0, bf2s = 0;
+	I skp = 0;
 
 	/* Used by division only */
 	I d_c1, d_c2, d_c3;
@@ -310,7 +311,11 @@ I main(I n, C** a)
 	c = fgetc(fi);
 	while (c != '\n')
 	{
-		if (isdigit(c))
+		if (skp)
+		{ /* used for jump/skip */ 
+			skp = 0;
+		}
+		else if (isdigit(c))
 		{
 digi:		while (c != ' ')
 			{
@@ -338,37 +343,82 @@ digi:		while (c != ' ')
 		else if (c == '.') printf("%s", stk[sp + 1]);
 		else if (c == '>')
 		{
+			c = fgetc(fi);
 			while (c != ' ')
 			{
 				*bf++ = c;
 				c = fgetc(fi);
 			}
+			*bf = 0;
 			bf = bfc;
 			strcpy(mem[strtol(bf, NULL, 10)], stk[sp + 1]);
 		}
 		else if (c == '<')
 		{
+			c = fgetc(fi);
 			while (c != ' ')
 			{
 				*bf++ = c;
 				c = fgetc(fi);
 			}
+			*bf = 0;
 			bf = bfc;
 			strcpy(stk[sp--], mem[strtol(bf, NULL, 10)]);
+		}
+		else if (c == 'J')
+		{
+			/* jump back or forward n chars */
+			ln = 0;
+			c = fgetc(fi);
+			while (c != ' ')
+			{
+				*bf++ = c;
+				c = fgetc(fi);
+				ln++;
+			}
+			*bf = 0;
+			bf = bfc;
+			if (ln < ftell(fi)) ln *= -1;
+			fseek(fi, ln, SEEK_CUR);
+		}
+		else if (c == 'F')
+		{
+			/* FIXED POINT FUNCTIONS */
+			c = fgetc(fi);
+			if (c == 'c')
+			{
+				/* decimal conversion, fixed precision */
+				/* how many digits of precision        */
+				c = fgetc(fi);
+				while (c != ' ')
+				{
+					*bf++ = c;
+					c = fgetc(fi);
+				}
+				*bf = 0;
+				bf = bfc;
+				strcpy(bf2, pop());
+				for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
+				bf2[SIZE - 2] = '.';
+				for (int j = 0; j < strtol(bf, NULL, 10); j++)
+				{
+					for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
+					bf2[SIZE - 2] = '0';
+				}
+				push(bf2);
+			}
 		}
 		else if (c == '}') /* logical shift right */
 		{
 			strcpy(bf, pop());
-			for (int i = SIZE - 2; i >= 0; i--)
-				bf[i] = bf[i - 1];
+			for (int i = SIZE - 2; i >= 0; i--) bf[i] = bf[i - 1];
 			bf[0] = '0';
 			push(bf);
 		}
 		else if (c == '{') /* shift left */
 		{
 			strcpy(bf, pop());
-			for (int i = 0; i < SIZE - 1; i++)
-				bf[i] = bf[i + 1];
+			for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
 			bf[SIZE - 2] = '0';
 			push(bf);
 		}
