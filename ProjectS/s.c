@@ -58,7 +58,8 @@ static C* pop(V)
 static V dmp(V)
 {
 	for (I i = SSIZE - 1; i >= SSIZE - 10; i--)
-		fprintf(stdout, "S%04d,%s\n", i, stk[i]);
+		fprintf(stdout, "S%04d,%s [%c]\n", i, stk[i],(i==(sp+1))?'*':' ');
+	fprintf(stdout, "-----------------------------------------------------------------------------------\n");
 	for (int i = 0; i < 10; i++)
 		fprintf(stdout, "M%04d,%s\n", i, mem[i]);
 	for (int i = MSIZE - 200; i < MSIZE - 195; i++)
@@ -170,6 +171,32 @@ static C* _add(C* bf, C* bf2)
 	for (I i = 0; i < ln; i++)
 	{
 		bf3[df] = _a(bf[df], bf2[df]);
+		df--;
+	}
+	if (cr == 1) bf3[df] = '1';
+	cr = 0; df = 0;
+	return bf3;
+}
+
+static C* _fadd(C* bf, C* bf2)
+{
+	I ln, ln2, df;
+	C* bf3;
+
+	bf3 = calloc(SIZE, sizeof(C));
+	if (!bf3) ER("bf3", 0xbf3);
+	zero(bf3);
+
+	ln = slen(bf);
+	ln2 = slen(bf2);
+	ln = (ln > ln2) ? ln : ln2;
+	df = SIZE - 2;
+	for (I i = 0; i < ln; i++)
+	{
+		if (bf[df] != '.')
+			bf3[df] = _a(bf[df], bf2[df]);
+		else
+			bf3[df] = '.';
 		df--;
 	}
 	if (cr == 1) bf3[df] = '1';
@@ -406,6 +433,12 @@ digi:		while (c != ' ')
 					bf2[SIZE - 2] = '0';
 				}
 				push(bf2);
+			}
+			else if (c == '+')
+			{
+				strcpy(bf2, pop());
+				strcpy(bf, pop());
+				push(_fadd(bf, bf2));
 			}
 		}
 		else if (c == '}') /* logical shift right */
@@ -727,9 +760,17 @@ add:		ln = slen(bf);
 			else push(bf2);
 		}
 		else if (c == 'D')
+			/* DUP */
 		{
 			strcpy(bf, pop());
 			push(bf); push(bf);
+		}
+		else if (c == 'S')
+			/* SWAP */
+		{
+			strcpy(bf, pop());
+			strcpy(bf2, pop());
+			push(bf); push(bf2);
 		}
 		else if (c == '~')
 		{
