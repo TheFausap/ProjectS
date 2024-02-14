@@ -4,6 +4,7 @@
 #include "s.h"
 
 static V i0(V)
+/* initialize everything */
 {
 	bf = calloc(SIZE, sizeof(C));
 	bf2 = calloc(SIZE, sizeof(C));
@@ -33,9 +34,11 @@ static V i0(V)
 	memset(one, '0', SIZE - 1); 
 	one[SIZE - 2] = '1';
 	sp = SSIZE - 1; cr = 0;
+	fpsz = 0; fpp = FPSTART;
 }
 
 static V zero(C* m)
+/* zeroes a vector with character 0 */
 {
 	memset(m, '0', SIZE - 1);
 }
@@ -48,6 +51,60 @@ static V push(C* n)
 	for (I i = (I)strlen(n) - 1; i >= 0; i--)
 		stk[sp][dp--] = n[i];
 	sp--;
+}
+
+static C* cvt(C* n)
+/* convert a number in a string into vector */
+{
+	I dp = SIZE - 2;
+	C* r;
+
+	r = calloc(SIZE, sizeof(C));
+	if (!r) ER("r", 0xe);
+	memset(r, '0', SIZE - 1);
+	for (I i = (I)strlen(n) - 1; i >= 0; i--)
+		r[dp--] = n[i];
+	return r;
+}
+
+static C* cvtf(C* n)
+/* convert a FP number into non decimal form  */
+/* multiply by a scale factor of power of ten */
+{
+	C* r;
+	I k=SIZE-2,m = SIZE-2;
+	r = calloc(SIZE, sizeof(C));
+	if (!r) ER("r", 0xe);
+	memset(r, '0', SIZE - 1);
+	while(k>=0)
+	{
+		if (n[k] != '.')
+		{
+			r[m] = n[k];
+			k--; m--;
+		}
+		else
+			k--;
+	}
+	return r;
+}
+
+static I cntf(C* n)
+{
+	I cnt = 0, df=0;
+	C* nc;
+	C c;
+
+	nc = n;
+	while ((c=*n))
+	{
+		if (df) cnt++;
+		if (c == '.') 
+			df = 1;
+		n++;
+	}
+	n = nc;
+	return cnt;
 }
 
 static C* pop(V)
@@ -67,17 +124,22 @@ static V dmp(V)
 }
 
 static C* cm(C* s)
+/* 9-complement of s */
 {
 	C* r;
 	r = calloc(SIZE, sizeof(C));
 	if (!r) ER("r", 0xe);
 	memset(r, '0', SIZE - 1);
 	for (I i = 0; i < SIZE - 1; i++)
-		r[i] = (9 - (s[i] - '0')) + '0';
+		if (s[i] != '.')
+			r[i] = (9 - (s[i] - '0')) + '0';
+		else 
+			r[i] = '.';
 	return r;
 }
 
 static C _a(C d1, C d2)
+/* elementary step for addition */
 {
 	C r = 0;
 
@@ -94,6 +156,8 @@ static C _a(C d1, C d2)
 }
 
 static C _m(C d1, C d2)
+/* elementary step of multiplication */
+/* using a table */
 {
 	C r = 0;
 	d1 -= '0'; d2 -= '0';
@@ -103,7 +167,6 @@ static C _m(C d1, C d2)
 		cr = 0;
 		while (r > 9)
 		{
-
 			r -= 10; cr++;
 		}
 	}
@@ -114,6 +177,7 @@ static C _m(C d1, C d2)
 }
 
 static V inc(C* s)
+/* increment by 1 */
 {
 	I df = SIZE - 2;
 
@@ -127,6 +191,8 @@ static V inc(C* s)
 }
 
 static I slen(C* s)
+/* number of digits in s */
+/* subtract 1 for FP numbers */
 {
 	C* sc;
 	I sl = 0;
@@ -138,7 +204,6 @@ static I slen(C* s)
 		else break;
 		sc++;
 	}
-
 	return SIZE-1-sl;
 }
 
@@ -204,6 +269,37 @@ static C* _fadd(C* bf, C* bf2)
 	return bf3;
 }
 
+static C* _fsub(C* bf, C* bf2c)
+{
+	I ln, ln2, df;
+	C* bf3;
+	C* bf2;
+
+	bf2 = calloc(SIZE, sizeof(C));
+	bf3 = calloc(SIZE, sizeof(C));
+	if (!bf3) ER("bf3", 0xbf3);
+	if (!bf2) ER("bf2c", 0xbf2);
+
+	strcpy(bf2, cm(bf2c));
+	cr = 1;
+
+	ln = slen(bf);
+	ln2 = slen(bf2);
+	ln = (ln > ln2) ? ln : ln2;
+	df = SIZE - 2;
+	for (I i = 0; i < ln; i++)
+	{
+		if (bf[df] != '.')
+			bf3[df] = _a(bf[df], bf2[df]);
+		else
+			bf3[df] = '.';
+		df--;
+	}
+	if (cr == 1) bf3[df] = '1';
+	cr = 0; df = 0;
+	return bf3;
+}
+
 static C* _sub(C* bf, C* bf2c)
 {
 	I ln, ln2, df;
@@ -233,6 +329,7 @@ static C* _sub(C* bf, C* bf2c)
 }
 
 static C* _mul(C* bf, C* bf2)
+/* long multiplication algorithm */
 {
 	I ln, ln2, wka;
 	I df, dff;
@@ -299,13 +396,13 @@ static C* _mul(C* bf, C* bf2)
 	for (I j = MSIZE - WKSIZE; j < wka - 1; j++)
 	{
 		for (I i = SIZE - 2; i >= 0; i--) bf3[i] = _a(bf3[i], mem[j][i]);
-	}
-
+	} 
 	while (*bf3++ == '0') {} /* remove leading zeros */
-	return bf3; 
+	return bf3-1; 
 }
 
 static V mvn(C* d, C* s, I sz)
+/* copy the first sz digits of s, into the last sz digits of d */
 {
 	C* sc = s;
 	I j = SIZE - 2;
@@ -324,6 +421,7 @@ I main(I n, C** a)
 	I ln = 0, ln2 = 0, df = 0, dff = 0;
 	I wka = 0, bfs = 0, bf2s = 0;
 	I skp = 0;
+	I cnt = 0;
 
 	/* Used by division only */
 	I d_c1, d_c2, d_c3;
@@ -412,11 +510,25 @@ digi:		while (c != ' ')
 		{
 			/* FIXED POINT FUNCTIONS */
 			c = fgetc(fi);
+			if (c == 'P')
+			{
+				/* setup precision */
+				c = fgetc(fi);
+				while (c != ' ')
+				{
+					*bf++ = c;
+					c = fgetc(fi);
+				}
+				*bf = 0;
+				bf = bfc;
+				fpsz = strtol(bf, NULL, 10);
+			}
 			if (c == 'c')
 			{
 				/* decimal conversion, fixed precision */
 				/* how many digits of precision        */
 				c = fgetc(fi);
+				memset(bf, '0', SIZE - 1);
 				while (c != ' ')
 				{
 					*bf++ = c;
@@ -439,6 +551,72 @@ digi:		while (c != ' ')
 				strcpy(bf2, pop());
 				strcpy(bf, pop());
 				push(_fadd(bf, bf2));
+				cr = 0; df = 0;
+			}
+			else if (c == '-')
+			{
+				strcpy(bf2, cm(pop()));
+				strcpy(bf, pop());
+				push(_fsub(bf, bf2));
+				cr = 0; df = 0;
+			}
+			else if (c == '*')
+			{
+				strcpy(bf2, pop());
+				strcpy(bf, pop());
+				df = cntf(bf) + cntf(bf2); /* total number of decimal digits */
+				strcpy(bf3, cvtf(bf2));
+				strcpy(bf2, bf3);
+				strcpy(bf3, cvtf(bf));
+				strcpy(bf, bf3);
+				strcpy(bf3, _mul(bf, bf2));
+				strcpy(mem[fpp], cvt(bf3));
+				zero(bf3);
+				dff = SIZE - 2; ln = SIZE - 2;
+				while(dff >= 0)
+				{
+					if (df > 0)
+					{
+						bf3[ln] = mem[fpp][dff];
+						df--; dff--; ln--;
+					}
+					else if (df == 0)
+					{
+						bf3[ln] = '.';
+						df--; ln--;
+					}
+					else
+					{
+						bf3[ln] = mem[fpp][dff];
+						dff--; ln--;
+					}
+				}
+				push(bf3);
+			}
+			else if (c == '=')
+			{
+				c = fgetc(fi);
+				cnt = 1; df = 0;
+				memset(bf, '0', SIZE - 1);
+				while (c != ' ')
+				{
+					*bf++ = c;
+					if (df) cnt++;
+					if (c == '.') df = cnt;
+					c = fgetc(fi);
+				}
+				*bf = 0;
+				bf = bfc;
+				memset(bf2, '0', SIZE - 1);
+				strcpy(bf2, cvt(bf));
+				if(df<fpsz)
+					for (int j = 0; j < fpsz - df; j++)
+					{
+						for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
+						bf2[SIZE - 2] = '0';
+					}
+				push(bf2);
+				df = 0; cnt = 0;
 			}
 		}
 		else if (c == '}') /* logical shift right */
