@@ -225,11 +225,15 @@ static V mvn(C* d, C* s, I sz)
 {
 	C* sc = s;
 	I j = SIZE - 2;
+	sz--;
+	j -= sz;
 	zero(d);
-	for (C* i = sc; i < sc + sz; i++)
+	while(sz>0)
 	{
-		d[j--] = *i;
+		d[j++] = *s++;
+		sz--;
 	}
+	s = sc;
 }
 
 static C* _add(C* bf, C* bf2)
@@ -620,10 +624,41 @@ static V _fdiv(C* bf, C* bf2)
 			strcpy(bf3, _add(bf3, bf));
 		}
 	}
-	strcpy(mem[wka + 3], bf3);
+	for (int i = 0; i < SIZE - 1; i++) mem[wka][i] = mem[wka][i + 1];
+	mem[wka][SIZE - 2] = '.';
+	for (int j = 0; j < fpsz; j++)
+	{
+		for (int i = 0; i < SIZE - 1; i++) mem[wka][i] = mem[wka][i + 1];
+		mem[wka][SIZE - 2] = '0';
+	}
+	/* decimals */
+	d_c1 -= fpsz;
+	d_c1++;
+	while (d_c1 < 99)
+	{
+		d_c2 = 0;
+		zero(bf);
+		for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
+		bf3[SIZE - 2] = '0';
+		do
+		{
+			d_c2++;
+			strcpy(bf, _add(bf, mem[wka + 2]));
+		} while (cmp(bf, bf3) < 0);
+		if (cmp(bf, bf3) > 0)
+		{
+			d_c2--;
+			strcpy(bf, _sub(bf, mem[wka + 2]));
+		}
+		mem[wka][d_c1] = d_c2 + '0';
+		strcpy(bf3, _sub(bf3, bf));
+		if (bf3[0] == '9')
+		{
+			strcpy(bf3, _add(bf3, bf));
+		}
+		d_c1++;
+	}
 }
-
-
 
 I main(I n, C** a)
 {
@@ -814,21 +849,25 @@ digi:		while (c != ' ')
 				strcpy(bf2, bf3);
 				strcpy(bf3, cvtf(bf));
 				strcpy(bf, bf3);
-				for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
-				bf2[SIZE - 2] = '.';
+				/* adding zeros for decimal places */
 				for (int j = 0; j < fpsz; j++)
 				{
 					for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
 					bf2[SIZE - 2] = '0';
 				}
-				for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
-				bf[SIZE - 2] = '.';
+				
 				for (int j = 0; j < fpsz; j++)
 				{
 					for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
 					bf[SIZE - 2] = '0';
 				}
-
+				_fdiv(bf, bf2);
+				strcpy(bf, mem[wka]); /* quotient */
+				bfc = bf;
+				df = SIZE - 2;
+				df -= fpsz; /* to the last digit of the number */
+				for (ln = 0; ln < df; ln++) bf[ln] = bf[ln + 1];
+				bf[ln] = '.';
 			}
 			else if (c == '=')
 			{
@@ -842,11 +881,12 @@ digi:		while (c != ' ')
 					if (c == '.') df = cnt;
 					c = fgetc(fi);
 				}
+				cnt--;
 				*bf = 0;
 				bf = bfc;
 				memset(bf2, '0', SIZE - 1);
 				strcpy(bf2, cvt(bf));
-				if(df<fpsz)
+				if(cnt<fpsz)
 					for (int j = 0; j < fpsz - df; j++)
 					{
 						for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
