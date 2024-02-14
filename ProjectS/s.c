@@ -220,6 +220,18 @@ static I cmp(C* s1, C* s2)
 	return 0;
 }
 
+static V mvn(C* d, C* s, I sz)
+/* copy the first sz digits of s, into the last sz digits of d */
+{
+	C* sc = s;
+	I j = SIZE - 2;
+	zero(d);
+	for (C* i = sc; i < sc + sz; i++)
+	{
+		d[j--] = *i;
+	}
+}
+
 static C* _add(C* bf, C* bf2)
 {
 	I ln, ln2, df;
@@ -401,17 +413,217 @@ static C* _mul(C* bf, C* bf2)
 	return bf3-1; 
 }
 
-static V mvn(C* d, C* s, I sz)
-/* copy the first sz digits of s, into the last sz digits of d */
+static V _div(C* bf, C* bf2)
 {
-	C* sc = s;
-	I j = SIZE - 2;
-	zero(d);
-	for (C* i = sc; i < sc+sz; i++)
+	C* bf3;
+	I wka = MSIZE - (2 * WKSIZE);
+	I d_c1 = 0, d_c2 = 0, d_c3 = 0;
+	I ln = 0, ln2 = 0;
+
+	bf3 = calloc(SIZE, sizeof(C));
+	if (!bf3) ER("bf3", 0xbf3);
+	zero(bf3);
+
+	for (I i = wka; i < MSIZE - WKSIZE; i++) zero(mem[i]);	/* working area */
+	/* cleaning latest 200 loc of memory, adjacent to the mul wkarea */
+	/* MEMORY STRUCTURE FOR DIVISION */
+	/* wka   = quotient              */
+	/* wka+1 = dividend              */
+	/* wka+2 = divisor               */
+	/* wka+3 = remainder             */
+	
+	if (cmp(bf, bf2) == 1)
 	{
-		d[j--] = *i;
+		strcpy(mem[wka],zr);
+		strcpy(mem[wka+3], bf);
+		return;
 	}
+	if (cmp(bf, bf2) == 0)
+	{
+		strcpy(mem[wka],one);
+		strcpy(mem[wka+3],zr);
+		return;
+	}
+	strcpy(mem[wka + 1], bf2);
+	strcpy(mem[wka + 2], bf);
+	ln = slen(bf);			/* how many digits in the divisor        */
+	while (bf2[d_c1] == '0') { d_c1++; }
+	bf2 += d_c1;			/* start at the first non zero digit     */
+	mvn(bf3, bf2, ln);		/* move n digits of dividend to temp bf3 */
+	while (cmp(bf3, bf) < 0)
+	{
+		ln++;
+		mvn(bf3, bf2, ln);  /* move one more if less                 */
+	}
+	/* first digit */
+	zero(bf);
+	do
+	{
+		d_c2++;
+		strcpy(bf, _add(bf, mem[wka + 2]));
+	} while (cmp(bf, bf3) <= 0);
+	if (cmp(bf, bf3) > 0)
+	{
+		d_c2--;
+		strcpy(bf, _sub(bf, mem[wka + 2]));
+	}
+	d_c1 += (ln - 1);
+	mem[wka][d_c1] = d_c2 + '0';
+	d_c1++;
+	strcpy(bf3, _sub(bf3, bf));
+	for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
+	bf3[SIZE - 2] = mem[wka + 1][d_c1];
+	/* intermediate digits */
+	while (d_c1 < SIZE - 2)
+	{
+		zero(bf);
+		d_c2 = 0;
+		do
+		{
+			d_c2++;
+			strcpy(bf, _add(bf, mem[wka + 2]));
+		} while (cmp(bf, bf3) <= 0);
+		if (d_c2 > 10) d_c2 %= 10;
+		if (cmp(bf, bf3) > 0)
+		{
+			d_c2--;
+			strcpy(bf, _sub(bf, mem[wka + 2]));
+		}
+		mem[wka][d_c1] = d_c2 + '0';
+		d_c1++;
+		strcpy(bf3, _sub(bf3, bf));
+		for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
+		bf3[SIZE - 2] = mem[wka + 1][d_c1];
+	}
+	/* last digit ? */
+	if (d_c1 < 99)
+	{
+		d_c2 = 0;
+		zero(bf);
+		do
+		{
+			d_c2++;
+			strcpy(bf, _add(bf, mem[wka + 2]));
+		} while (cmp(bf, bf3) < 0);
+		if (cmp(bf, bf3) > 0)
+		{
+			d_c2--;
+			strcpy(bf, _sub(bf, mem[wka + 2]));
+		}
+		mem[wka][d_c1] = d_c2 + '0';
+		strcpy(bf3, _sub(bf3, bf));
+		if (bf3[0] == '9')
+		{
+			strcpy(bf3, _add(bf3, bf));
+		}
+	}
+	strcpy(mem[wka+3],bf3);
 }
+
+static V _fdiv(C* bf, C* bf2)
+{
+	C c;
+	C* bf3;
+
+	I wka = MSIZE - (2 * WKSIZE);
+	I d_c1 = 0, d_c2 = 0, d_c3 = 0;
+	I ln = 0, ln2 = 0;
+
+	bf3 = calloc(SIZE, sizeof(C));
+	if (!bf3) ER("bf3", 0xbf3);
+	zero(bf3);
+
+	for (I i = wka; i < MSIZE - WKSIZE; i++) zero(mem[i]);	/* working area */
+	/* cleaning latest 200 loc of memory, adjacent to the mul wkarea */
+	/* MEMORY STRUCTURE FOR DIVISION */
+	/* wka   = quotient              */
+	/* wka+1 = dividend              */
+	/* wka+2 = divisor               */
+	/* wka+3 = remainder             */
+
+	if (cmp(bf, bf2) == 0)
+	{
+		strcpy(mem[wka], one);
+		strcpy(mem[wka + 3], zr);
+		return;
+	}
+	strcpy(mem[wka + 1], bf2);
+	strcpy(mem[wka + 2], bf);
+	ln = slen(bf);			/* how many digits in the divisor        */
+	while (bf2[d_c1] == '0') { d_c1++; }
+	bf2 += d_c1;			/* start at the first non zero digit     */
+	mvn(bf3, bf2, ln);		/* move n digits of dividend to temp bf3 */
+	while (cmp(bf3, bf) < 0)
+	{
+		ln++;
+		mvn(bf3, bf2, ln);  /* move one more if less                 */
+	}
+	/* first digit */
+	zero(bf);
+	do
+	{
+		d_c2++;
+		strcpy(bf, _add(bf, mem[wka + 2]));
+	} while (cmp(bf, bf3) <= 0);
+	if (cmp(bf, bf3) > 0)
+	{
+		d_c2--;
+		strcpy(bf, _sub(bf, mem[wka + 2]));
+	}
+	d_c1 += (ln - 1);
+	mem[wka][d_c1] = d_c2 + '0';
+	d_c1++;
+	strcpy(bf3, _sub(bf3, bf));
+	for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
+	bf3[SIZE - 2] = mem[wka + 1][d_c1];
+	/* intermediate digits */
+	while (d_c1 < SIZE - 2)
+	{
+		zero(bf);
+		d_c2 = 0;
+		do
+		{
+			d_c2++;
+			strcpy(bf, _add(bf, mem[wka + 2]));
+		} while (cmp(bf, bf3) <= 0);
+		if (d_c2 > 10) d_c2 %= 10;
+		if (cmp(bf, bf3) > 0)
+		{
+			d_c2--;
+			strcpy(bf, _sub(bf, mem[wka + 2]));
+		}
+		mem[wka][d_c1] = d_c2 + '0';
+		d_c1++;
+		strcpy(bf3, _sub(bf3, bf));
+		for (int i = 0; i < SIZE - 1; i++) bf3[i] = bf3[i + 1];
+		bf3[SIZE - 2] = mem[wka + 1][d_c1];
+	}
+	/* last digit ? */
+	if (d_c1 < 99)
+	{
+		d_c2 = 0;
+		zero(bf);
+		do
+		{
+			d_c2++;
+			strcpy(bf, _add(bf, mem[wka + 2]));
+		} while (cmp(bf, bf3) < 0);
+		if (cmp(bf, bf3) > 0)
+		{
+			d_c2--;
+			strcpy(bf, _sub(bf, mem[wka + 2]));
+		}
+		mem[wka][d_c1] = d_c2 + '0';
+		strcpy(bf3, _sub(bf3, bf));
+		if (bf3[0] == '9')
+		{
+			strcpy(bf3, _add(bf3, bf));
+		}
+	}
+	strcpy(mem[wka + 3], bf3);
+}
+
+
 
 I main(I n, C** a)
 {
@@ -592,6 +804,31 @@ digi:		while (c != ' ')
 					}
 				}
 				push(bf3);
+			}
+			else if (c == '%')
+			{
+				strcpy(bf2, pop());
+				strcpy(bf, pop());
+				df = cntf(bf);			/* number of decimal digits */
+				strcpy(bf3, cvtf(bf2));
+				strcpy(bf2, bf3);
+				strcpy(bf3, cvtf(bf));
+				strcpy(bf, bf3);
+				for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
+				bf2[SIZE - 2] = '.';
+				for (int j = 0; j < fpsz; j++)
+				{
+					for (int i = 0; i < SIZE - 1; i++) bf2[i] = bf2[i + 1];
+					bf2[SIZE - 2] = '0';
+				}
+				for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
+				bf[SIZE - 2] = '.';
+				for (int j = 0; j < fpsz; j++)
+				{
+					for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
+					bf[SIZE - 2] = '0';
+				}
+
 			}
 			else if (c == '=')
 			{
