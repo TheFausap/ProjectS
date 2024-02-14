@@ -524,7 +524,7 @@ static V _div(C* bf, C* bf2)
 	strcpy(mem[wka+3],bf3);
 }
 
-static V _fdiv(C* bf, C* bf2)
+static I _fdiv(C* bf, C* bf2)
 {
 	C c;
 	C* bf3;
@@ -658,6 +658,7 @@ static V _fdiv(C* bf, C* bf2)
 		}
 		d_c1++;
 	}
+	return wka;
 }
 
 I main(I n, C** a)
@@ -842,6 +843,7 @@ digi:		while (c != ' ')
 			}
 			else if (c == '%')
 			{
+				/* FP Division, unsigned, not rounded */
 				strcpy(bf2, pop());
 				strcpy(bf, pop());
 				df = cntf(bf);			/* number of decimal digits */
@@ -861,13 +863,8 @@ digi:		while (c != ' ')
 					for (int i = 0; i < SIZE - 1; i++) bf[i] = bf[i + 1];
 					bf[SIZE - 2] = '0';
 				}
-				_fdiv(bf, bf2);
-				strcpy(bf, mem[wka]); /* quotient */
-				bfc = bf;
-				df = SIZE - 2;
-				df -= fpsz; /* to the last digit of the number */
-				for (ln = 0; ln < df; ln++) bf[ln] = bf[ln + 1];
-				bf[ln] = '.';
+				df=_fdiv(bf, bf2);
+				push(mem[df]);
 			}
 			else if (c == '=')
 			{
